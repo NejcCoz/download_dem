@@ -37,7 +37,7 @@ def get_tile_names(aoi, data_type):
         print("Using local (backup) version instead.")
         fishnet = gpd.read_file(".\\P1_Geometric\\P11_Data_Preparation"
                                 "\\anc_bup_files\\SI\\LIDAR_FISHNET_D96.shp")
-    
+
     # Reproject AOI polygon local CRS if needed (EPSG 3794):
     net_crs = CRS.from_string(fishnet.crs['init']).to_epsg()
     aoi_crs = aoi.crs.to_epsg()
@@ -45,7 +45,7 @@ def get_tile_names(aoi, data_type):
         aoi_pr = aoi.to_crs(crs=net_crs).envelope
     else:
         aoi_pr = aoi.envelope
-    
+
     # Create a list of tile names covered by the polygon:
     if data_type == "DTM":
         url_main = "http://gis.arso.gov.si/lidar/dmr1/"
@@ -79,19 +79,19 @@ def download_file(dwn_url, dwn_folder):
     open(dwn_dir, "wb").write(download_tile.content)
     # Message for successful download
     status_msg = f"{dwn_fil} succsesfully downloaded"
-    
+
     return status_msg, dwn_fil
 
 
 def copy_local(dwn_url, copy_dir):
     """Function copies selected files from local repository.
-    
+
     It creates the path to local file by taking the file name from the
     URL and joining it with the local path.
-    
+
     NOTE: The CRS of TIFs in repository is not defined, instead
     of just copying, update the GeoTIFF instead.
-    
+
     Future-proofed: if CRS is missing then update, else just copy.
     """
     # Path to local repository of DTMs
@@ -101,10 +101,10 @@ def copy_local(dwn_url, copy_dir):
     fil_nam = name + ".tif"
     src_pth = join(local_dir, fil_nam)
     dst_pth = join(copy_dir, fil_nam)
-    
+
     # Open TIF file
     tif = rasterio.open(src_pth)
-    
+
     # Check CRS
     if tif.crs is None:
         meta = tif.profile.copy()
@@ -116,10 +116,10 @@ def copy_local(dwn_url, copy_dir):
     else:
         tif.close()
         copyfile(src_pth, dst_pth)
-    
+
     # Output
     status_msg = f"{fil_nam} succsesfully copied"
-    
+
     return status_msg, fil_nam
 
 
@@ -197,18 +197,18 @@ def asc_to_gtif(i_dir):
 def download(data_type, gs_aoi, main_dir, local_rep=True):
     """
     Copy lidar data for Slovenia from a local repository.
-    
+
     Set local_rep=False to download from ARSO website instead.
     """
     # Get URLs for tiles covered by a polygon:
     tiles = get_tile_names(gs_aoi, data_type)
     print(f'Found {len(tiles)} products')
-    
+
     # Make sure temporary folder for download exists:
     dwn_dir = join(main_dir, data_type)
     if not exists(dwn_dir):
         makedirs(dwn_dir)
-    
+
     if local_rep:
         # Copy DTM files from local repository:
         print('\nCopying DTM files:')
@@ -230,23 +230,25 @@ def download(data_type, gs_aoi, main_dir, local_rep=True):
             result = asc_to_gtif(dwn_dir)
             print(result)
         out_msg = "Finished downloading DTM files!"
-        
+
     # Output dictionary:
     out = {'out_msg': out_msg,
            'out_dir': dwn_dir}
-    
+
     return out
 
 
 if __name__ == "__main__":
-    # Set temporary inputs
+    # Set temporary inputs (define area of interest as box polygon)
     from shapely.geometry import box
     in_ext = [456500, 97200, 457500, 99200]  # [minx, miny, maxx, maxy]
     in_poly = box(in_ext[0], in_ext[1], in_ext[2], in_ext[3])
-    in_crs = CRS.from_epsg(3794)  # D96/TM
+    # Define CRS (coordinate reference system)
+    in_crs = CRS.from_epsg(3794)  # EPSG:3794 for the D96/TM (nova slovenska projekcija)
     # ---
     in_gs = gpd.GeoSeries(in_poly, crs=in_crs)
-    in_type = "LAZ"
+    in_type = "DEM"  # LAZ or DEM
+    # Define save location (folder)
     in_dir = "..\\..\\si_temp"
 
     # Run download
